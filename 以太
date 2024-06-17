@@ -1,0 +1,53 @@
+// 引入Ethers.js库
+const { ethers } = require('ethers');
+
+// 连接到以太坊节点
+const provider = new ethers.providers.InfuraProvider('mainnet', 'YOUR_INFURA_PROJECT_ID');
+
+// 生成一个新账户
+const wallet = ethers.Wallet.createRandom();
+console.log(`新账户地址: ${wallet.address}`);
+console.log(`新账户私钥: ${wallet.privateKey}`);
+
+// 定义一个异步函数来执行账户相关操作
+async function accountOperations() {
+  try {
+    // 使用私钥连接到钱包
+    const walletWithProvider = new ethers.Wallet(wallet.privateKey, provider);
+    
+    // 获取账户余额
+    let balance = await walletWithProvider.getBalance();
+    console.log(`账户余额: ${ethers.utils.formatEther(balance)} ETH`);
+
+    // 创建一个交易对象
+    const tx = {
+      to: '0xReceiverAddress', // 接收方地址
+      value: ethers.utils.parseEther('0.01') // 转账金额
+    };
+
+    // 发送交易
+    const txResponse = await walletWithProvider.sendTransaction(tx);
+    console.log(`交易哈希: ${txResponse.hash}`);
+
+    // 等待交易确认
+    const receipt = await txResponse.wait();
+    console.log(`交易已确认，区块编号: ${receipt.blockNumber}`);
+
+    // 监听特定事件，例如监控代币转账事件
+    const contractAddress = '0xYourContractAddress';
+    const contractABI = [ /* 合约ABI */ ];
+    const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+    contract.on('Transfer', (from, to, value, event) => {
+      if (from === wallet.address) {
+        console.log(`代币转账事件: from ${from} to ${to} value ${ethers.utils.formatUnits(value, 18)}`);
+      }
+    });
+
+  } catch (error) {
+    console.error(`操作失败: ${error}`);
+  }
+}
+
+// 执行账户相关操作
+accountOperations();
